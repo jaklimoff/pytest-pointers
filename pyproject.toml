@@ -1,8 +1,12 @@
 [tool.poetry]
 name = "pytest-pointers"
-version = "0.2.1"
+version = "0.2.2"
 description = "Pytest plugin to define functions you test with special marks for better navigation and reports"
 authors = ["Jack Klimov <jaklimoff@gmail.com>"]
+readme = 'README.md'
+repository = "https://github.com/jaklimoff/pytest-pointers"
+homepage = "https://github.com/jaklimoff/pytest-pointers"
+keywords = ['plugin', 'pytest']
 
 [tool.poetry.plugins."pytest11"]
 plugin = "pytest_pointers.plugin"
