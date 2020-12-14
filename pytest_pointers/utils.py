@@ -1,10 +1,27 @@
-import ast
 import sys
-from _ast import ClassDef, AST
-from _ast import FunctionDef, AsyncFunctionDef
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Set
+
+import libcst as cst
+from libcst.metadata import QualifiedNameProvider
+
+
+class MethodQualNamesCollector(cst.CSTVisitor):
+    METADATA_DEPENDENCIES = (QualifiedNameProvider,)
+
+    def __init__(self):
+        self.found = []
+        super().__init__()
+
+    def visit_FunctionDef(self, node: cst.FunctionDef):
+        header = getattr(node.body, 'header', None)
+        excluded = header is not None and header.comment and header.comment.value.find("notest:") > -1
+
+        if not excluded:
+            qual_names = self.get_metadata(QualifiedNameProvider, node)
+            for qn in qual_names:
+                self.found.append(qn.name)
 
 
 @dataclass
@@ -12,24 +29,11 @@ class FuncFinder:
     start_dir: Path
 
     @classmethod
-    def get_methods(cls, node: AST):
-        for child in node.body:
-            if isinstance(child, ClassDef):
-                for m in cls.get_methods(child):
-                    m.parent = child
-                    yield m
-            if isinstance(child, FunctionDef) or isinstance(child, AsyncFunctionDef):
-                yield child
-
-    @classmethod
-    def get_node_qual_name(cls, node: AST) -> str:
-        def get_name(n: AST):
-            if hasattr(n, 'parent'):
-                return get_name(n.parent) + [n.name]
-            else:
-                return [n.name]
-
-        return ".".join(get_name(node))
+    def get_methods_qual_names(cls, node: cst.Module):
+        collector = MethodQualNamesCollector()
+        cst.MetadataWrapper(node).visit(collector)
+        for method_name in collector.found:
+            yield method_name
 
     def get_py_files(self) -> Set[Path]:
         py_files = [p for p in self.start_dir.glob('**/*.py')]
@@ -47,11 +51,10 @@ class FuncFinder:
 
         for p in py_files:
             with open(p, 'r') as f:
-                tree = ast.parse(f.read())
+                tree = cst.parse_module(f.read())
 
             source = min(set(p.parents) & set(source_paths))
             abs_import = p.parts[len(source.parts):-1] + (p.stem,)
 
-            for func in self.get_methods(tree):
-                name = FuncFinder.get_node_qual_name(func)
-                yield ".".join(abs_import + (name,))
+            for fun_name in self.get_methods_qual_names(tree):
+                yield ".".join(abs_import + (fun_name,))

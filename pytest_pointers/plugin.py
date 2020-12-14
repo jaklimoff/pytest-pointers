@@ -75,7 +75,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: Union[int, pytest.
         pointers = session.config.cache.get(CACHE_TARGETS, {})
 
         start_dir = Path(session.startdir)  # noqa
-        funcs = list(FuncFinder(start_dir))
+        funcs = FuncFinder(start_dir)
 
         def report_line(f):
             test_count = len(pointers.get(f, []))

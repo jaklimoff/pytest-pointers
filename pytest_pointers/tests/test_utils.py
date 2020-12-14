@@ -1,36 +1,14 @@
-import ast
 from pathlib import Path
 from textwrap import dedent
 
+import libcst as cst
 import pytest
 
 from pytest_pointers.tests.mock_structure import for_func_finder
 from pytest_pointers.utils import FuncFinder
 
 
-@pytest.mark.pointer(target=FuncFinder.get_methods)
-class TestFuncFinderGetFunctions:
-    def test__func_called__result_returned(self, testdir):
-        with open(Path(for_func_finder.__file__), 'r') as f:
-            tree = ast.parse(f.read())
-
-        methods = list(FuncFinder.get_methods(tree))
-
-        assert len(methods) == 5
-        assert methods[0].name == 'for_test'
-
-        assert methods[1].name == '__init__'
-        assert methods[1].parent.name == 'Some'
-        assert methods[2].name == 'for_test'
-        assert methods[2].parent.name == 'Some'
-
-        assert methods[3].name == '__init__'
-        assert methods[3].parent.name == 'Another'
-        assert methods[4].name == 'for_test'
-        assert methods[4].parent.name == 'Another'
-
-
-@pytest.mark.pointer(target=FuncFinder.get_node_qual_name)
+@pytest.mark.pointer(target=FuncFinder.get_methods_qual_names)
 class TestFuncFinderGetNodeQualName:
     @pytest.mark.parametrize(
         ('module', 'expect'),
@@ -66,31 +44,39 @@ class TestFuncFinderGetNodeQualName:
             ),
             pytest.param(
                 dedent("""\
-                    class Some:
-                        def __init__(self):
-                            pass
+                        class Some:
+                            def __init__(self):
+                                pass
 
-                        def for_test(self):
-                            pass
+                            def for_test(self):
+                                pass
 
 
-                    class Another:
-                        def __init__(self):
-                            pass
+                        class Another:
+                            def __init__(self):
+                                pass
 
-                        def for_test(self):
-                            pass
-                    """),
+                            def for_test(self):
+                                pass
+                        """),
                 ['Some.__init__', 'Some.for_test', 'Another.__init__', 'Another.for_test'],
                 id="Multiple classes with same methods"
+            ),
+            pytest.param(
+                dedent("""\
+                    class Some:
+                        def for_test(self):  # notest:
+                            pass
+                    """),
+                [],
+                id="Ignored method must be omitted"
             )
         ]
     )
     def test__func_called__result_returned(self, module, expect):
-        tree = ast.parse(module)
-        methods = list(FuncFinder.get_methods(tree))
+        tree = cst.parse_module(module)
 
-        result = list(FuncFinder.get_node_qual_name(m) for m in methods)
+        result = list(FuncFinder.get_methods_qual_names(tree))
 
         assert result == expect
 
