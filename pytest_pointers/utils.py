@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import Set
 
 import libcst as cst
-from libcst.metadata import QualifiedNameProvider
+from libcst.metadata import QualifiedNameProvider, ParentNodeProvider
 
 
 class MethodQualNamesCollector(cst.CSTVisitor):
-    METADATA_DEPENDENCIES = (QualifiedNameProvider,)
+    METADATA_DEPENDENCIES = (QualifiedNameProvider,ParentNodeProvider)
 
     def __init__(self):
         self.found = []
@@ -19,9 +19,12 @@ class MethodQualNamesCollector(cst.CSTVisitor):
         excluded = header is not None and header.comment and header.comment.value.find("notest:") > -1
 
         if not excluded:
+            # TODO: Find better way to remove locals
             qual_names = self.get_metadata(QualifiedNameProvider, node)
             for qn in qual_names:
-                self.found.append(qn.name)
+                from_local = qn.name.find('<locals>') > -1
+                if not from_local:
+                    self.found.append(qn.name)
 
 
 @dataclass
