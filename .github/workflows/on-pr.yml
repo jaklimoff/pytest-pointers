@@ -43,7 +43,7 @@ jobs:
       #----------------------------------------------
       - name: Run black
         run: |
-          poetry run black --check
+          poetry run black --check .
       - name: Run tests
         run: |
           poetry run pytest
