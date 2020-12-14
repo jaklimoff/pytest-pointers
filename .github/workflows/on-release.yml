@@ -1,0 +1,30 @@
+name: Publish
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    #  -----  install & configure poetry  -----
+    - name: Install Poetry
+      uses: snok/install-poetry@v1.1.1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    #  -----  publish
+    - name: Build and publish
+      run: |
+        poetry version $(git describe --tags --abbrev=0)
+        poetry build
+        poetry publish --username ${{ secrets.PYPI_USERNAME }} --password ${{ secrets.PYPI_PASSWORD }}
