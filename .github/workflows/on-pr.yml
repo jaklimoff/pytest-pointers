@@ -39,9 +39,11 @@ jobs:
         run: poetry install
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       #----------------------------------------------
-      #              run test suite
+      #              run test suite and black
       #----------------------------------------------
+      - name: Run black
+        run: |
+          poetry run black --check
       - name: Run tests
         run: |
-          source .venv/bin/activate
           poetry run pytest
