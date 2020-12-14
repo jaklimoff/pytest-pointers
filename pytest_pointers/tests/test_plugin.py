@@ -6,6 +6,7 @@ from pytest_pointers.plugin import _pointer_marker
 
 pytestmark = [pytest.mark.unit]
 
+
 @pytest.mark.pointer(target=_pointer_marker)
 class TestPointerMarkerFixture:
     @staticmethod
@@ -23,8 +24,8 @@ class TestPointerMarkerFixture:
                 assert result == 1
         """
         expect = {
-            'test__regular_flow__pointers_collected.Some.for_test': [
-                'test__regular_flow__pointers_collected.py::test_for_test'
+            "test__regular_flow__pointers_collected.Some.for_test": [
+                "test__regular_flow__pointers_collected.py::test_for_test"
             ]
         }
         yield pytest.param(content, expect, id="One test of method")
@@ -52,12 +53,12 @@ class TestPointerMarkerFixture:
                 assert result == 1
         """
         expect = {
-            'test__regular_flow__pointers_collected.Some.for_test1': [
-                'test__regular_flow__pointers_collected.py::test_for_test1'
+            "test__regular_flow__pointers_collected.Some.for_test1": [
+                "test__regular_flow__pointers_collected.py::test_for_test1"
             ],
-            'test__regular_flow__pointers_collected.Some.for_test2': [
-                'test__regular_flow__pointers_collected.py::test_for_test2'
-            ]
+            "test__regular_flow__pointers_collected.Some.for_test2": [
+                "test__regular_flow__pointers_collected.py::test_for_test2"
+            ],
         }
         yield pytest.param(content, expect, id="Two tests for two methods")
 
@@ -82,9 +83,9 @@ class TestPointerMarkerFixture:
                     assert result == 1
         """
         expect = {
-            'test__regular_flow__pointers_collected.Some.for_test': [
-                'test__regular_flow__pointers_collected.py::TestSome::test_for_test1',
-                'test__regular_flow__pointers_collected.py::TestSome::test_for_test2'
+            "test__regular_flow__pointers_collected.Some.for_test": [
+                "test__regular_flow__pointers_collected.py::TestSome::test_for_test1",
+                "test__regular_flow__pointers_collected.py::TestSome::test_for_test2",
             ]
         }
         yield pytest.param(content, expect, id="Two test for one method")
@@ -107,8 +108,8 @@ class TestPointerMarkerFixture:
                     assert result == 1
         """
         expect = {
-            'test__regular_flow__pointers_collected.Some.for_test': [
-                'test__regular_flow__pointers_collected.py::TestSome::test_for_test'
+            "test__regular_flow__pointers_collected.Some.for_test": [
+                "test__regular_flow__pointers_collected.py::TestSome::test_for_test"
             ]
         }
         yield pytest.param(content, expect, id="Property as a target")
@@ -131,28 +132,25 @@ class TestPointerMarkerFixture:
                     assert result == 1
         """
         expect = {
-            'test__regular_flow__pointers_collected.Some.for_test': [
-                'test__regular_flow__pointers_collected.py::TestSome::test_for_test'
+            "test__regular_flow__pointers_collected.Some.for_test": [
+                "test__regular_flow__pointers_collected.py::TestSome::test_for_test"
             ]
         }
         yield pytest.param(content, expect, id="Classmethod as a target")
 
-    @pytest.mark.parametrize(
-        ('content', 'expect'),
-        get_params.__func__()  # noqa
-    )
+    @pytest.mark.parametrize(("content", "expect"), get_params.__func__())  # noqa
     def test__regular_flow__pointers_collected(self, testdir, content, expect):
         """
         Make sure that pointer marker is working properly
         """
         testdir.makepyfile(content)
 
-        result = testdir.runpytest('--pointers-collect')
+        result = testdir.runpytest("--pointers-collect")
         assert result.ret == 0
 
-        cache_file = testdir.tmpdir / '.pytest_cache' / 'v' / 'pointers' / 'targets'
+        cache_file = testdir.tmpdir / ".pytest_cache" / "v" / "pointers" / "targets"
         assert cache_file.exists()
-        with open(cache_file, 'r') as f:
+        with open(cache_file, "r") as f:
             targets = json.loads(f.read())
 
         assert targets == expect
