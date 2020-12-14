@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-pointers"
-version = "0.2.4"
+version = "0.2.5"
 description = "Pytest plugin to define functions you test with special marks for better navigation and reports"
 authors = ["Jack Klimov <jaklimoff@gmail.com>"]
 readme = 'README.md'
@@ -8,16 +8,21 @@ repository = "https://github.com/jaklimoff/pytest-pointers"
 homepage = "https://github.com/jaklimoff/pytest-pointers"
 keywords = ['plugin', 'pytest']
 
+[tool.poetry.scripts]
+format = "poetry_deps_formatter:formatter"
+
 [tool.poetry.plugins."pytest11"]
 plugin = "pytest_pointers.plugin"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-rich = "^9.3.0"
-libcst = "^0.3.15"
+rich = "^9.3.0"                                   # Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal ·· https://pypi.org/project/rich/ 
+libcst = "^0.3.15"                                # A concrete syntax tree with AST-like properties for Python 3.5, 3.6, 3.7 and 3.8 programs. ·· https://pypi.org/project/libcst/ 
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.1"
+pytest = "^6.1"                                   # pytest: simple powerful testing with Python ·· https://pypi.org/project/pytest/ 
+poetry-deps-formatter = "^0.1.1"                  # Beautify dependencies in pyproject.yaml based on poetry.lock ·· https://pypi.org/project/poetry-deps-formatter/ 
+black = {version = "^20.8b1", allow-prereleases = true}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
