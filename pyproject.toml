@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-pointers"
-version = "0.0.0"
+version = "0.0.1"
 description = "Pytest plugin to define functions you test with special marks for better navigation and reports"
 authors = ["Jack Klimov <jaklimoff@gmail.com>"]
 readme = 'README.md'
@@ -16,7 +16,7 @@ plugin = "pytest_pointers.plugin"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-rich = "^9.3.0"                                   # Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal ·· https://pypi.org/project/rich/ 
+rich = "*"                                        # Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal ·· https://pypi.org/project/rich/ 
 libcst = "^0.3.15"                                # A concrete syntax tree with AST-like properties for Python 3.5, 3.6, 3.7 and 3.8 programs. ·· https://pypi.org/project/libcst/ 
 
 [tool.poetry.dev-dependencies]
