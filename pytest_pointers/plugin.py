@@ -28,9 +28,9 @@ def pytest_addoption(parser):
         help="Minimum number of pointer marks for a unit to pass.",
     )
     group.addoption(
-        "--pointers-percent-pass",
+        "--pointers-fail-under",
         action="store",
-        dest="pointers_percent_pass",
+        dest="pointers_fail_under",
         default=0.,
         type=float,
         help="Minimum percentage of units to pass (exit 0), if greater than exit 1.",
@@ -124,37 +124,45 @@ def pytest_runtestloop(session):
             )
         )
 
+    console = Console()
+    console.print("")
+    console.print("")
+    console.print("----------------------")
+    console.print("Pointers unit coverage")
+    console.print("========================================")
+
     if session.config.option.pointers_report:
 
         report = make_report(func_results)
 
-        console = Console()
         # console.print("")
         console.print(report)
 
     # test whether the whole thing passed
+    PERCENT_PASS = session.config.option.pointers_fail_under
 
-    if session.config.option.pointers_percent_pass > 0:
+    num_funcs = len(func_results)
+    total_passes = sum([
+        1 if res.is_pass else 0
+        for res
+        in func_results
+    ])
 
-        num_funcs = len(func_results)
-        total_passes = sum([
-            1 if res.is_pass else 0
-            for res
-            in func_results
-        ])
+    if total_passes == num_funcs:
+        percent_passes = 100.0
+    elif total_passes > 0:
+        percent_passes = (total_passes / num_funcs) * 100
+    else:
+        percent_passes = 0.
 
-        if total_passes > 0:
-            percent_passes = (total_passes / num_funcs) * 100
-        else:
-            percent_passes = 0.
+    if percent_passes < PERCENT_PASS:
+        session.testsfailed = 1
+        console.print(
+            f"[bold red]Pointers unit coverage failed. Target was {PERCENT_PASS}, achieved {percent_passes}.[/bold red]"
+        )
 
-        PERCENT_PASS = session.config.option.pointers_percent_pass
-        if percent_passes < PERCENT_PASS:
-            session.testsfailed = 1
-            console.print(
-                f"[bold red]Pointers unit coverage failed. Target was {PERCENT_PASS}, achieved {percent_passes}.[/bold red]"
-            )
-
+    console.print("END Pointers unit coverage")
+    console.print("========================================")
 
 # def pytest_sessionfinish(
 #     session: pytest.Session,
