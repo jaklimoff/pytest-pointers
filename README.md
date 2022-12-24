@@ -72,9 +72,9 @@ pytest --pointers-report --pointers-collect=src --pointers-func-min-pass=1 --poi
 
 ### Installation
 
-Just install from this git repository:
-
 ``` shell
-pip install git+https://github.com/salotz/pytest-pointers.git
+pip install pytest_pointers
 ```
+
+
 
