@@ -1,12 +1,10 @@
 from pathlib import Path
-from textwrap import dedent
 from typing import Union
 
 import pytest
 from rich.console import Console
-from rich.padding import Padding
 
-from pytest_pointers.utils import FuncFinder
+from pytest_pointers.utils import FuncFinder, make_report, MIN_NUM_POINTERS, FuncResult
 
 CACHE_TARGETS = "pointers/targets"
 CACHE_ALL_FUNC = "pointers/funcs"
@@ -22,10 +20,25 @@ def pytest_addoption(parser):
         help="Show report in console",
     )
     group.addoption(
+        "--pointers-func-min-pass",
+        action="store",
+        dest="pointers_func_min_pass",
+        default=MIN_NUM_POINTERS,
+        type=int,
+        help="Minimum number of pointer marks for a unit to pass.",
+    )
+    group.addoption(
+        "--pointers-fail-under",
+        action="store",
+        dest="pointers_fail_under",
+        default=0.,
+        type=float,
+        help="Minimum percentage of units to pass (exit 0), if greater than exit 1.",
+    )
+    group.addoption(
         "--pointers-collect",
-        action="store_true",
         dest="pointers_collect",
-        default=False,
+        default='src',
         help="Gather targets and tests for them",
     )
 
@@ -68,40 +81,90 @@ def _pointer_marker(request):
         pointers[target_full_name].append(request.node.nodeid)
         request.config.cache.set(CACHE_TARGETS, pointers)
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtestloop(session):
 
-def pytest_sessionfinish(
-    session: pytest.Session, exitstatus: Union[int, pytest.ExitCode]
-):
-    if session.config.option.pointers_report:
-        console = Console()
-        console.print("")
+    # do the report here so we can give the exit code, in pytest_sessionfinish
+    # you cannot alter the exit code
 
-        pointers = session.config.cache.get(CACHE_TARGETS, {})
+    # run the inner hook
+    yield
 
-        start_dir = Path(session.startdir)  # noqa
-        funcs = FuncFinder(start_dir)
+    # after the runtestloop is finished we can generate the report etc.
 
-        def report_line(f):
-            test_count = len(pointers.get(f, []))
+    pointers = session.config.cache.get(CACHE_TARGETS, {})
 
-            if test_count > 1:
-                color = "green"
-            elif test_count == 1:
-                color = "blue"
-            else:
-                color = "red"
+    start_dir = Path(session.startdir) # noqa
 
-            test_count_str = f"{test_count: <2}"
-            return f"[{color}]{test_count_str:·<5}[/{color}] {f}"
+    # the collect option can also tell where to start within the project,
+    # otherwise it will collect a lot of wrong paths in virtualenvs etc.
+    source_dir = start_dir / session.config.option.pointers_collect
 
-        report_lines = "\n".join([report_line(f) for f in funcs])
-        report = dedent(
-            f"""
-        [bold]List of functions in project and the number of tests for them[/bold]
+    # collect all the functions by scanning the source code
+    funcs = FuncFinder(source_dir)
 
-        \n{report_lines}
-        """
+    # collect the pass/fails for all the units
+
+    func_results = []
+    for func in funcs:
+        test_count = len(pointers.get(func, []))
+
+        is_pass = False
+
+        if test_count >= session.config.option.pointers_func_min_pass:
+            is_pass = True
+        else:
+            is_pass = False
+
+        func_results.append(
+            FuncResult(
+                name=func,
+                num_pointers=test_count,
+                is_pass=is_pass,
+            )
         )
 
-        test = Padding(report, (2, 4), expand=False)
-        console.print(test)
+    console = Console()
+    console.print("")
+    console.print("")
+    console.print("----------------------")
+    console.print("Pointers unit coverage")
+    console.print("========================================")
+
+    if session.config.option.pointers_report:
+
+        report = make_report(func_results)
+
+        # console.print("")
+        console.print(report)
+
+    # test whether the whole thing passed
+    PERCENT_PASS = session.config.option.pointers_fail_under
+
+    num_funcs = len(func_results)
+    total_passes = sum([
+        1 if res.is_pass else 0
+        for res
+        in func_results
+    ])
+
+    if total_passes == num_funcs:
+        percent_passes = 100.0
+    elif total_passes > 0:
+        percent_passes = (total_passes / num_funcs) * 100
+    else:
+        percent_passes = 0.
+
+    if percent_passes < PERCENT_PASS:
+        session.testsfailed = 1
+        console.print(
+            f"[bold red]Pointers unit coverage failed. Target was {PERCENT_PASS}, achieved {percent_passes}.[/bold red]"
+        )
+
+    console.print("END Pointers unit coverage")
+    console.print("========================================")
+
+# def pytest_sessionfinish(
+#     session: pytest.Session,
+#     exitstatus: Union[int, pytest.ExitCode]
+# ):
