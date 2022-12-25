@@ -35,10 +35,7 @@ jobs:
         run: poetry install
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
 
-      # -----  run test suite and black
-      - name: Run black
-        run: |
-          poetry run black --check .
+      # -----  run test suite
       - name: Run tests
         run: |
           poetry run pytest
