@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Set
 from textwrap import dedent
+from collections.abc import Collection
 
 import libcst as cst
 from libcst.metadata import QualifiedNameProvider, ParentNodeProvider
@@ -39,6 +40,7 @@ class MethodQualNamesCollector(cst.CSTVisitor):
 @dataclass
 class FuncFinder:
     start_dir: Path
+    ignore_paths: Collection[Path]
 
     @classmethod
     def get_methods_qual_names(cls, node: cst.Module):
@@ -48,7 +50,13 @@ class FuncFinder:
             yield method_name
 
     def get_py_files(self) -> Set[Path]:
-        py_files = [p for p in self.start_dir.glob("**/*.py")]
+
+        py_files = [
+            path
+            for path
+            in self.start_dir.glob("**/*.py")
+            if path not in self.ignore_paths
+        ]
         py_files = set(py_files)
 
         for pattern in [".venv/**/*.py", "venv/**/*.py", "tests/**/*.py"]:

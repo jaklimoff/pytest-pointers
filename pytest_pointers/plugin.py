@@ -41,6 +41,12 @@ def pytest_addoption(parser):
         default='src',
         help="Gather targets and tests for them",
     )
+    group.addoption(
+        "--pointers-ignore",
+        dest="pointers_ignore",
+        default='',
+        help="Source files to ignore in collection, comma separated.",
+    )
 
 
 def pytest_configure(config):
@@ -100,8 +106,46 @@ def pytest_runtestloop(session):
     # otherwise it will collect a lot of wrong paths in virtualenvs etc.
     source_dir = start_dir / session.config.option.pointers_collect
 
+    # parse the ignore paths
+
+    ignore_str = session.config.option.pointers_ignore
+
+    # if nothing then don't ignore anything
+    if len(ignore_str) == 0:
+        ignore_paths = set()
+
+    else:
+        parts = ignore_str.split(',')
+
+        # expand globs
+        path_parts = []
+        for part in parts:
+            part_matches = list(source_dir.glob(part))
+
+            if len(part_matches) == 0:
+                raise ValueError(
+                    f"No matches for pattern: {part}"
+                )
+
+            path_parts.extend(part_matches)
+
+        ignore_paths = set((source_dir / Path(p)).resolve() for p in path_parts)
+
+        for ignore_path in ignore_paths:
+
+            if ignore_path.suffix != ".py":
+                raise ValueError(
+                    f"Ignored file path is not a Python file: {ignore_path}"
+                )
+
+            if not ignore_path.exists():
+                raise ValueError(f"Ignored file path does not exist: {ignore_path}")
+
     # collect all the functions by scanning the source code
-    funcs = FuncFinder(source_dir)
+    funcs = FuncFinder(
+        source_dir,
+        ignore_paths=ignore_paths,
+    )
 
     # collect the pass/fails for all the units
 
